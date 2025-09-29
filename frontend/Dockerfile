@@ -13,11 +13,9 @@ RUN yarn install --frozen-lockfile
 # Copy the rest of the application's code
 COPY . .
 
-# Build the Next.js application
-RUN yarn build
 
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Command to run the application
-CMD ["yarn", "start"]
+# Command to run the application in development mode to enable API proxying
+CMD ["yarn", "dev"]
