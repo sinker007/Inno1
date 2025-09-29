@@ -1,4 +1,7 @@
+'use client';
+
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -9,18 +12,41 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import CircularProgress from '@mui/material/CircularProgress';
 
-function createData(name: string, riskScore: number, lastScanned: string) {
-  return { name, riskScore, lastScanned };
+interface Vendor {
+  id: number;
+  name: string;
+  url: string;
 }
 
-const rows = [
-  createData('Sample Vendor 1', 85, '2024-07-28'),
-  createData('Sample Vendor 2', 65, '2024-07-27'),
-  createData('Sample Vendor 3', 95, '2024-07-28'),
-];
+async function getVendors(): Promise<Vendor[]> {
+  // This will be proxied to the backend by Next.js/deployment environment
+  const res = await fetch('/api/vendors');
+  if (!res.ok) {
+    // This will activate the closest `error.js` Error Boundary
+    throw new Error('Failed to fetch data');
+  }
+  return res.json();
+}
 
 export default function HomePage() {
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getVendors()
+      .then((data) => {
+        setVendors(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ my: 4 }}>
@@ -28,27 +54,39 @@ export default function HomePage() {
           Third-Party Risk Radar
         </Typography>
         <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }} aria-label="simple table">
+          <Table sx={{ minWidth: 650 }} aria-label="vendors table">
             <TableHead>
               <TableRow>
                 <TableCell>Vendor Name</TableCell>
-                <TableCell align="right">Risk Score</TableCell>
-                <TableCell align="right">Last Scanned</TableCell>
+                <TableCell>URL</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row) => (
-                <TableRow
-                  key={row.name}
-                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                >
-                  <TableCell component="th" scope="row">
-                    {row.name}
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={2} align="center">
+                    <CircularProgress />
                   </TableCell>
-                  <TableCell align="right">{row.riskScore}</TableCell>
-                  <TableCell align="right">{row.lastScanned}</TableCell>
                 </TableRow>
-              ))}
+              ) : error ? (
+                 <TableRow>
+                  <TableCell colSpan={2} align="center" sx={{ color: 'red' }}>
+                    Error: {error}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                vendors.map((vendor) => (
+                  <TableRow
+                    key={vendor.id}
+                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  >
+                    <TableCell component="th" scope="row">
+                      {vendor.name}
+                    </TableCell>
+                    <TableCell>{vendor.url}</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
