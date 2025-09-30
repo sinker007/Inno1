@@ -40,9 +40,13 @@ if (-not (Test-Path -Path ".venv")) {
 # 2. Start Backend Server
 Write-Step "Starting backend server..."
 $backendJob = Start-Job -ScriptBlock {
-    # Activate venv and run uvicorn
+
+    # Activate venv, navigate, and run uvicorn
     & ./.venv/Scripts/Activate.ps1
+    Push-Location -Path "backend"
     uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    Pop-Location
+
 } -Name "Backend"
 Write-Info "Backend (API) is starting in the background."
 
