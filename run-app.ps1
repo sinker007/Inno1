@@ -1,40 +1,83 @@
-# --- Script ---
+# =================================================================
+# Application Startup Script for Third-Party Risk Radar
+#
+# This script runs the backend and frontend servers simultaneously.
+#
+# Pre-requisites:
+# - Run the `setup-env.ps1` script once to install dependencies.
+#
+# What this script does:
+# 1. Activates the Python virtual environment.
+# 2. Starts the backend FastAPI server on http://localhost:8000.
+# 3. Starts the frontend Next.js dev server on http://localhost:3000.
+# =================================================================
 
-Write-Host "Starting the Third-Party Risk Radar application setup..." -ForegroundColor Green
-
-# Step 1: Check if Docker is running
-Write-Host "Verifying Docker is running..."
-docker --version
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Docker command failed. Please ensure Docker Desktop is installed and running." -ForegroundColor Red
-    Read-Host -Prompt "Press Enter to exit"
-    exit 1
-}
-Write-Host "Docker found." -ForegroundColor Green
-
-# Step 2: Build and run the application using Docker Compose
-Write-Host "Building and starting the application containers (frontend, backend, db)..." -ForegroundColor Yellow
-Write-Host "This might take several minutes the first time."
-
-# Use 'docker compose' to build and run all services in detached mode (-d)
-docker compose up --build -d
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "There was an error building or starting the containers." -ForegroundColor Red
-    Write-Host "For a detailed log, run this command in your terminal: docker compose up --build"
-    Read-Host -Prompt "Press Enter to exit"
-    exit 1
+# --- Helper Functions ---
+function Write-Step {
+    param ($message)
+    Write-Host "✅ STEP: $message" -ForegroundColor Green
 }
 
-Write-Host "`n--- Application is Starting Up! ---" -ForegroundColor Cyan
-Write-Host "Frontend Dashboard will be available at: http://localhost:3000"
-Write-Host "Backend API will be available at:       http://localhost:8000"
-Write-Host "API Docs (Swagger UI) are at:         http://localhost:8000/docs"
+function Write-Info {
+    param ($message)
+    Write-Host "   -> $message"
+}
 
-# Step 3: Provide instructions on how to stop the application
-Write-Host "`n--- How to Stop the Application ---" -ForegroundColor Yellow
-Write-Host "To stop all running services, open a PowerShell terminal in this directory and run:"
-Write-Host "docker compose down"
+function Write-Error {
+    param ($message)
+    Write-Host "❌ ERROR: $message" -ForegroundColor Red
+    exit 1
+}
 
-Write-Host "`nSetup complete!" -ForegroundColor Green
-Read-Host -Prompt "Press Enter to continue..."
+# --- Main Script ---
+Write-Host "--- Starting Third-Party Risk Radar Application ---"
+
+# 1. Check for virtual environment
+if (-not (Test-Path -Path ".venv")) {
+    Write-Error "Virtual environment '.venv' not found. Please run 'setup-env.ps1' first."
+}
+
+# 2. Start Backend Server
+Write-Step "Starting backend server..."
+$backendJob = Start-Job -ScriptBlock {
+    # Activate venv, navigate, and run uvicorn
+    & ./.venv/Scripts/Activate.ps1
+    Push-Location -Path "backend"
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    Pop-Location
+} -Name "Backend"
+Write-Info "Backend (API) is starting in the background."
+
+# 3. Start Frontend Server
+Write-Step "Starting frontend server..."
+$frontendJob = Start-Job -ScriptBlock {
+    # Navigate to frontend and start
+    Push-Location -Path "frontend"
+    npm run dev
+    Pop-Location
+} -Name "Frontend"
+Write-Info "Frontend (UI) is starting in the background."
+
+
+Write-Host ""
+Write-Host "🎉 Application is running! 🎉" -ForegroundColor Green
+Write-Host ""
+Write-Host "   - Frontend UI:      http://localhost:3000"
+Write-Host "   - Backend API Docs: http://localhost:8000/docs"
+Write-Host ""
+Write-Host "To stop the application, close this PowerShell window or run:"
+Write-Host "   Get-Job | Stop-Job"
+Write-Host ""
+
+# Keep the script running to show job status
+while ($true) {
+    $backendStatus = (Get-Job -Name "Backend").State
+    $frontendStatus = (Get-Job -Name "Frontend").State
+
+    if ($backendStatus -ne 'Running' -or $frontendStatus -ne 'Running') {
+        Write-Host "One of the services has stopped. See job status below:" -ForegroundColor Yellow
+        Get-Job
+        break
+    }
+    Start-Sleep -Seconds 5
+}

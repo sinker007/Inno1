@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-SQLALCHEMY_DATABASE_URL = "postgresql://user:password@db:5432/third_party_risk"
+SQLALCHEMY_DATABASE_URL = "mssql+pyodbc://@localhost/third_party_risk?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
