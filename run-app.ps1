@@ -32,8 +32,10 @@ function Write-Error {
 # --- Main Script ---
 Write-Host "--- Starting Third-Party Risk Radar Application ---"
 
+
 # 1. Prerequisite Checks
 Write-Step "Verifying environment..."
+
 if (-not (Test-Path -Path ".venv")) {
     Write-Error "Virtual environment '.venv' not found. Please run 'setup-env.ps1' first."
 }
@@ -70,6 +72,8 @@ $frontendJob = Start-Job -ScriptBlock {
     Pop-Location
 } -Name "Frontend"
 Write-Info "Frontend (UI) is starting in the background."
+
+
 
 
 Write-Host ""
