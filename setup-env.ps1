@@ -60,6 +60,7 @@ if (-not (Check-CommandExists "node")) {
         Write-Host "Please install Node.js (LTS) from https://nodejs.org/ and ensure it's added to your PATH."
         exit 1
     }
+
 }
 Write-Action "Node.js found."
 
