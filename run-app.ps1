@@ -32,21 +32,34 @@ function Write-Error {
 # --- Main Script ---
 Write-Host "--- Starting Third-Party Risk Radar Application ---"
 
-# 1. Check for virtual environment
+
+# 1. Prerequisite Checks
+Write-Step "Verifying environment..."
+
 if (-not (Test-Path -Path ".venv")) {
     Write-Error "Virtual environment '.venv' not found. Please run 'setup-env.ps1' first."
 }
+# Check for Node.js and add to PATH if necessary
+if (-not (Get-Command "node" -ErrorAction SilentlyContinue)) {
+    Write-Info "Node.js not found in PATH. Checking default installation directory..."
+    $nodeDefaultPath = "C:\Program Files\nodejs"
+    if (Test-Path -Path $nodeDefaultPath) {
+        Write-Info "Node.js found at $nodeDefaultPath. Adding to PATH for this session."
+        $env:Path = "$nodeDefaultPath;" + $env:Path
+    } else {
+        Write-Error "Node.js not found. Please run 'setup-env.ps1' or ensure Node.js is in your PATH."
+    }
+}
+Write-Info "Environment verified."
 
 # 2. Start Backend Server
 Write-Step "Starting backend server..."
 $backendJob = Start-Job -ScriptBlock {
-
     # Activate venv, navigate, and run uvicorn
     & ./.venv/Scripts/Activate.ps1
     Push-Location -Path "backend"
     uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     Pop-Location
-
 } -Name "Backend"
 Write-Info "Backend (API) is starting in the background."
 
@@ -59,6 +72,8 @@ $frontendJob = Start-Job -ScriptBlock {
     Pop-Location
 } -Name "Frontend"
 Write-Info "Frontend (UI) is starting in the background."
+
+
 
 
 Write-Host ""
