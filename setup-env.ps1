@@ -50,9 +50,17 @@ if (-not (Check-CommandExists "python")) {
 Write-Action "Python found."
 
 if (-not (Check-CommandExists "node")) {
-    Write-Warning "Node.js is not found in your PATH."
-    Write-Host "Please install Node.js (LTS) from https://nodejs.org/ and ensure it's added to your PATH."
-    exit 1
+    Write-Action "Node.js not found in PATH. Checking default installation directory..."
+    $nodeDefaultPath = "C:\Program Files\nodejs"
+    if (Test-Path -Path $nodeDefaultPath) {
+        Write-Action "Node.js found at $nodeDefaultPath. Adding to PATH for this session."
+        $env:Path = "$nodeDefaultPath;" + $env:Path
+    } else {
+        Write-Warning "Node.js is not found in your PATH or the default directory."
+        Write-Host "Please install Node.js (LTS) from https://nodejs.org/ and ensure it's added to your PATH."
+        exit 1
+    }
+
 }
 Write-Action "Node.js found."
 
